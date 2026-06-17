@@ -1,0 +1,104 @@
+### ==============================================================================
+### COMPLETE BACKEND USER MANAGEMENT & RBAC TESTING SUITE
+### ==============================================================================
+
+@baseUrl = http://localhost:5000/api/users
+
+# ⚠️ PASTED ACTIVE TOKEN: Use this for the authorization tests below
+# ⚠️ Update these at the top of your test.http file:
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMzE4YzBjYTU0OGYxNjE5MjRjNzc5MSIsImlhdCI6MTc4MTcwNjE5MywiZXhwIjoxNzgyMzEwOTkzfQ.sj9hRiWf1-lsMOGOZ7L0vtz7AJzwOx1uzNB0Gc57Dt8
+@targetUserId = 6a3292cc84450067b90b66ea
+# 🎯 TARGET USER ID: Replace this with an ID from your database to test admin actions
+@targetUserId = 6a318c0ca548f161924c7791
+
+
+### ─── 1. PUBLIC AUTHENTICATION ROUTES ────────────────────────────────────────
+
+### Test 1: Register a Brand New User (Uses fresh email to prevent 409 Conflict)
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "fullName": "Aryan Bugalia",
+  "email": "aryan.fresh99@example.com",
+  "password": "securepass123"
+}
+
+###
+
+### Test 2: Login User
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "aryan.test2@example.com",
+  "password": "securepass123"
+}
+
+
+### ─── 2. PROTECTED PROFILE ROUTES (REQUIRES TOKEN) ───────────────────────────
+
+### Test 3: Get Profile (FAIL TEST - No Token Supplied)
+GET {{baseUrl}}/profile
+
+###
+
+### Test 4: Get Profile (SUCCESS TEST - Uses @token Variable)
+GET {{baseUrl}}/profile
+Authorization: Bearer {{token}}
+
+###
+
+### Test 5: Update User Profile
+PUT {{baseUrl}}/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Aryan Sharma Updated"
+}
+
+
+### ─── 3. ADMIN-ONLY OPERATIONS (RBAC LAYER) ──────────────────────────
+
+### Test 6: Get All Registered Users
+# Will return 200 OK if @token belongs to an Admin. Returns 403 Forbidden if regular user.
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{token}}
+
+###
+
+### Test 7: Get Single User By ID
+GET {{baseUrl}}/admin/users/{{targetUserId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Test 8: Change a User's Role (Promote / Demote via API)
+PATCH {{baseUrl}}/admin/users/{{targetUserId}}/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+###
+
+### Test 9: Delete a User Account as Admin
+DELETE {{baseUrl}}/admin/users/{{targetUserId}}
+Authorization: Bearer {{token}}
+
+
+### ─── 4. SECURITY & RATE LIMITER STRESS TEST ────────────────────────────────
+
+### Test 10: Rate Limiter Trigger
+# Click "Send Request" on this block 11 times rapidly.
+# The 11th click will bypass the controller and slap down a 429 Too Many Requests response.
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "hacker.bot@example.com",
+  "password": "bruteforceguessing"
+}
